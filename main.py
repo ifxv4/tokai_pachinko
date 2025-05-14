@@ -9,8 +9,10 @@ import os
 URL = 'https://p-tora.com/toukai/hall/index.html?no=12709'
 # 遷移ページのひな型
 MACHINE_URL = 'https://p-tora.com/toukai/hall/dai.php?tno=12709&sis=TVpZADctLDc4&item_name='
-# 遷移ページ日付（id = 1は前日）
-MACHINE_DATE = '&offset_date=1'
+# 遷移ページ日付枠（id = 1は前日）
+DATE_FRAME = '&offset_date='
+# 日付ID（id = 0は当日、値が増える度に前の日になる）
+DATE_ID = "0"
 # 遷移ページ機種番号
 MACHINE_NUM = '&dno='
 # 正規表現パターン
@@ -20,13 +22,13 @@ STYLE = "margin: 5px 0"
 
 
 # 前日の日付を取得
-def getYesterdayDate():
+def getSelectDate():
     # 現在の日付を取得
     current_date = datetime.now()
     # 昨日の日付を計算
-    yesterday_date = current_date - timedelta(days=1)
+    select_date = current_date - timedelta(days=int(DATE_ID))
     # 年、月、日をリストに格納して返す
-    dateStr = yesterday_date.strftime("%Y-%m-%d")
+    dateStr = select_date.strftime("%Y-%m-%d")
     return dateStr
 
 
@@ -52,7 +54,7 @@ def getPicture(_soup, _name, _number, _date):
 
     # img要素のsrc属性の値を取得
     try:
-        cel = _soup.find('td', id="cel1")
+        cel = _soup.find('td', id="cel" + DATE_ID)
         style = cel.find('div', style=STYLE)
         element = style.find("img", class_="chartImage")
         path = element.get("image-path")
@@ -75,7 +77,7 @@ def getPicture(_soup, _name, _number, _date):
 def getBounas(_soup):
     data_array = []
     try:
-        cel = _soup.find('td', id="cel1")
+        cel = _soup.find('td', id="cel" + DATE_ID)
         table = cel.find('table', class_="hist_table")
         # テーブルの全ての行（<tr>）を取得
         rows = table.find_all("tr")
@@ -183,21 +185,22 @@ def getAllData(_url, _date):
     for machine in slot_machines:
         print(f"機種名: {machine['name']}, リンク: {machine['link']}")
         # リンク先を作成
-        link = MACHINE_URL + machine['link'] + MACHINE_DATE
+        link = MACHINE_URL + machine['link'] + DATE_FRAME + DATE_ID
         # 機種の番号を格納
         number_array = [] 
         number_array = getSlotNumber(link)
         # 詳細ページのリンクを作成してアクセス
         for i in number_array:
-            link = MACHINE_URL + machine['link'] + MACHINE_NUM + i + MACHINE_DATE
+            link = MACHINE_URL + machine['link'] + MACHINE_NUM + i + DATE_FRAME + DATE_ID
+            print("url_debug:", link)
             # 画像とボーナス情報を入手
             getDetailInfo(link, machine['name'], i, _date)
 
 
 def main():
-    dateStr = getYesterdayDate()
+    dateStr = getSelectDate()
     # デバッグ表示：日付を表示
-    print("昨日の日付:", dateStr)
+    print("選択した日付:", dateStr)
     # 全機種ループ処理
     getAllData(URL, dateStr)
 
